@@ -10,6 +10,7 @@ install requirements from requirements.txt
 change below lines for video source and frame selection interval, (set video_path to 0 for camera capture)
 
 > video_path = 'videoplayback.mp4'
+
 > frame_interval = 30
 
 run *aid.py* to see output
