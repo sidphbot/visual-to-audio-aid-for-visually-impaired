@@ -15,7 +15,7 @@ change below lines for video source and frame selection interval, (set video_pat
 
 run *aid.py* to see output
 
-# Model details:
+# Model details: (will be replaced with a HED + GAN architecture soon)
 
 > Image captioning model is trained with Bahdanau attention, with a CNN encoder and GRU based RNN decoder
 
@@ -29,9 +29,11 @@ run *aid.py* to see output
 
 > architecture diagram and overview are in design folder
 
+# final text-to-speech
+
+pyttsx3 - https://pypi.org/project/pyttsx3/
+
 
 # Pending Work:
 
 > semantic text similarity for comparing older and newer caption to avoid output congestion
-
-> final text-to-speech conversion with pyttsx3

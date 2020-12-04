@@ -1,3 +1,6 @@
+from multiprocessing import Process
+
+import pyttsx3
 import tensorflow as tf
 
 # You'll generate plots of attention in order to see which parts of an image
@@ -14,10 +17,14 @@ import cv2
 import time
 
 # define video path -- to be switched to live channel later
-video_path = 'videoplayback.mp4'
-# define the interval after which a frame is selected - the nth frame
-frame_interval = 30
+from player import play_video, speak
 
+video_path = 'sample.mp4'
+# define the interval after which a frame is selected - the nth frame
+frame_interval = 160
+# captions
+old_caption = ""
+new_caption = ""
 # checkpoint_path = "/gdrive/checkpoints/train"        #use if on same drive account as training
 
 def checkpoint_check():
@@ -235,12 +242,12 @@ def evaluate(image):
 
 def test(image_path):
     # image_url = url
-    ckpt.restore(ckpt_manager.latest_checkpoint)
+    #ckpt.restore(ckpt_manager.latest_checkpoint)
     # image_extension = image_url[-4:]
     # image_path = tf.keras.utils.get_file('image' + image_extension, origin=image_url)
     result = evaluate(image_path)
-    print(str(image_path) + "in test")
-    print('Prediction Caption:', ' '.join(result))
+    # print(str(image_path) + "in test")
+    # print('Prediction Caption:', ' '.join(result))
     # plot_attention(image_path, result, attention_plot)
     # opening the image
     Image.open(image_path)
@@ -248,58 +255,109 @@ def test(image_path):
 
 
 def initialize():
+    global eng
     checkpoint_check()
     initialize_inceptionv3()
     initialize_tokenizer()
     initialize_hyperparameters()
     define_model_components()
     load_checkpoint()
+    eng = pyttsx3.init()
     #print(str(path)+"in generate")
 
 
-def process_caption(new_caption, old_caption):
-    pass    # to do text similarity and text-to-speech part
+def process_caption(old_caption, new_caption):
+    # global checkpoint_path,image_features_extract_model,top_k,tokenizer,embedding_dim, units, vocab_size,attention_features_shape, max_length,encoder, decoder, optimizer, loss_object,ckpt, ckpt_manager
+    # global old_caption, new_caption, eng
+    # with open('global_state.pickle', 'rb') as handle:
+       # dict = pickle.load(handle)
+    # globals().update(dict)
+    # new_caption = test("frame.jpg")
+    print(new_caption)
+    eng = pyttsx3.init()
+    eng.say(new_caption)
+
+    # Runs for small duration of time otherwise we may not be able to hear
+    eng.runAndWait()
+    # to do text similarity and text-to-speech part
+    #return new_caption
 
 
-def runvideo(video_path):
+def caption_video(video_path):
+    global old_caption, new_caption
     cap = cv2.VideoCapture(video_path)
     #print("running")
     next_frame = 0
-    new_caption = ""
-    old_caption = ""
-
+    processes = []
+    # dict = {"checkpoint_path": checkpoint_path,"image_features_extract_model": image_features_extract_model,
+            # "top_k": top_k, "tokenizer": tokenizer}
+    # with open('global_state.pickle', 'wb') as handle:
+        # pickle.dump(dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
     while (cap.isOpened()):
         #print("running loop")
-        ret, frame = cap.read()
+
         next_frame = next_frame + 1
         print(next_frame)
-        if next_frame == frame_interval:
-            #print("processing frame")
-            next_frame = 0
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            bottomLeftCornerOfText = (50, 50)
-            fontScale = 1
-            fontColor = (255, 255, 255)
-            lineType = 2
-            # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            cv2.imwrite("frame.jpg", frame)
-            new_caption = test("frame.jpg")
-            if old_caption is "":
-                old_caption = new_caption
-            else:
-                process_caption(new_caption, old_caption)
-            # new_caption="jjh"
-            print(new_caption)
-            cv2.putText(frame, new_caption, bottomLeftCornerOfText, font, fontScale, fontColor, lineType)
-            cv2.imshow('frame', frame)
+        #if old_caption is "" and next_frame == 1:
+        #    print("waiting")
+        #    time.sleep(6.7)
+        #    continue
+
+        if old_caption is "" and next_frame < frame_interval:
+            ret = cap.grab()
+            time.sleep(41 / 1000)
+            continue
         else:
-            time.sleep(50/1000)
-        if cv2.waitKey(50) & 0xFF == ord('q'):
+            if next_frame != frame_interval:
+                ret = cap.grab()
+                time.sleep(41 / 1000)
+                continue
+            if next_frame == frame_interval:
+                ret, frame = cap.read()
+                # print("processing frame")
+                next_frame = 0
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                bottomLeftCornerOfText = (50, 50)
+                fontScale = 1
+                fontColor = (255, 255, 255)
+                lineType = 2
+                # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                cv2.imwrite("frame.jpg", frame)
+                start = time.process_time()
+                new_caption = test("frame.jpg")
+                if old_caption is "":
+                    old_caption = new_caption
+
+                # p = Process(target=process_caption, args=(old_caption, new_caption))
+                # p.start()
+                # print(p.pid)
+                # processes.append(p)
+                # new_caption="jjh"
+                # print(new_caption)
+                cv2.putText(frame, new_caption, bottomLeftCornerOfText, font, fontScale, fontColor, lineType)
+                imS = cv2.resize(frame, (530, 300))
+
+                process_caption(old_caption, new_caption)
+                print(time.process_time() - start)
+                cv2.imshow('frame', imS)
+
+        #cv2.imshow('frame', frame)
+        if cv2.waitKey(20) & 0xFF == ord('q'):
             break
 
     cap.release()
     cv2.destroyAllWindows()
+    # for pr in processes:
+        # pr.join()
 
 
-initialize()
-runvideo(video_path)
+
+
+
+if __name__ == '__main__':
+    initialize()
+    #p = Process(target=play_video)
+    #p.start()
+    caption_video(video_path)
+    #p.join()
+
